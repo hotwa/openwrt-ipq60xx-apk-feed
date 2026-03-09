@@ -1,0 +1,20 @@
+TARGET=qualcommax/ipq60xx
+PACKAGE_ARCH=aarch64_cortex-a53
+SDK_BASE_URL=https://downloads.immortalwrt.org/snapshots/targets/qualcommax/ipq60xx
+OFFICIAL_PACKAGES_URL=https://downloads.immortalwrt.org/snapshots/packages/aarch64_cortex-a53/packages/
+OFFICIAL_LUCI_URL=https://downloads.immortalwrt.org/snapshots/packages/aarch64_cortex-a53/luci/
+PACKAGE_IDS="luci-app-podman luci-app-tailscale-community"
+
+PKG_LUCI_APP_PODMAN_REPO=Zerogiven-OpenWRT-Packages/luci-app-podman
+PKG_LUCI_APP_PODMAN_BRANCH=main
+PKG_LUCI_APP_PODMAN_REF=4a15e161170ba8cdfec0f522b7a80cc54b9dd96b
+PKG_LUCI_APP_PODMAN_SUBDIR=.
+PKG_LUCI_APP_PODMAN_PACKAGE_NAME=luci-app-podman
+PKG_LUCI_APP_PODMAN_RUNTIME_DEPS="packages:podman"
+
+PKG_LUCI_APP_TAILSCALE_COMMUNITY_REPO=Tokisaki-Galaxy/luci-app-tailscale-community
+PKG_LUCI_APP_TAILSCALE_COMMUNITY_BRANCH=master
+PKG_LUCI_APP_TAILSCALE_COMMUNITY_REF=62ca0d7bfde024d7e956aeb74cec6d033d5920c0
+PKG_LUCI_APP_TAILSCALE_COMMUNITY_SUBDIR=luci-app-tailscale-community
+PKG_LUCI_APP_TAILSCALE_COMMUNITY_PACKAGE_NAME=luci-app-tailscale-community
+PKG_LUCI_APP_TAILSCALE_COMMUNITY_RUNTIME_DEPS="packages:tailscale"

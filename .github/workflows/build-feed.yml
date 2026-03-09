@@ -1,0 +1,128 @@
+name: build-feed
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '17 3 * * *'
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: build-feed-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  refresh-lock:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Refresh source lock
+        run: ./ci/update_sources.sh
+
+      - name: Commit lock updates
+        run: |
+          if git diff --quiet -- packages.lock; then
+            echo "No upstream source updates."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add packages.lock
+          git commit -m "chore(lock): refresh upstream package refs"
+          git push
+
+  build:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package_id:
+          - luci-app-podman
+          - luci-app-tailscale-community
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential rsync zstd curl git tar xxd
+
+      - name: Validate runtime dependencies
+        run: ./ci/verify_runtime_deps.sh
+
+      - name: Cache SDK
+        uses: actions/cache@v4
+        with:
+          path: ./.sdk/immortalwrt-sdk-ipq60xx
+          key: sdk-ipq60xx-${{ hashFiles('packages.lock') }}
+          restore-keys: |
+            sdk-ipq60xx-
+
+      - name: Build package
+        run: ./ci/build_package.sh ${{ matrix.package_id }}
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.package_id }}
+          path: ./.artifacts/${{ matrix.package_id }}/*.apk
+
+  publish:
+    if: github.event_name != 'schedule'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake git curl xxd
+
+      - name: Build usign
+        run: |
+          git clone --depth 1 https://github.com/openwrt/usign.git /tmp/usign
+          cmake -S /tmp/usign -B /tmp/usign/build
+          cmake --build /tmp/usign/build -j"$(nproc)"
+          sudo cmake --install /tmp/usign/build
+
+      - name: Download package artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./.artifacts
+
+      - name: Render feed
+        env:
+          USIGN_KEY: ${{ secrets.USIGN_KEY }}
+        run: ./ci/render_feed.sh
+
+      - name: Prepare Pages artifact
+        run: |
+          mkdir -p site
+          cp -a dist/. site/
+          touch site/.nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./site
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
