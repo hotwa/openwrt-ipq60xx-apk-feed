@@ -161,6 +161,27 @@ inject_dynamic_version_if_needed() {
   mv "$makefile.tmp" "$makefile"
 }
 
+apply_build_strategy_if_needed() {
+  local pkg_id="$1"
+  local makefile="$2"
+  local strategy
+
+  strategy="$(package_field "$pkg_id" BUILD_STRATEGY)"
+
+  case "$strategy" in
+    "" )
+      ;;
+    strip_luci_depends )
+      # Build only the overlay package payload. Runtime dependencies are installed
+      # separately from official feeds by the firmware pipeline.
+      sed -i -E 's|^LUCI_DEPENDS[[:space:]]*:=.*$|LUCI_DEPENDS:=|g' "$makefile"
+      ;;
+    * )
+      fail "unsupported build strategy for $pkg_id: $strategy"
+      ;;
+  esac
+}
+
 stage_package_into_sdk() {
   local pkg_id="$1"
   local src_dir subdir pkg_name dest_dir ref
@@ -180,17 +201,21 @@ stage_package_into_sdk() {
   rsync -a --delete "$src_dir/$subdir/" "$dest_dir/"
   [ -f "$dest_dir/Makefile" ] || fail "package Makefile missing at $dest_dir/Makefile"
   inject_dynamic_version_if_needed "$dest_dir/Makefile" "$ref"
+  apply_build_strategy_if_needed "$pkg_id" "$dest_dir/Makefile"
 }
 
 clean_sdk_package_state() {
   local pkg_name="$1"
+  local translation_pkg="${pkg_name#luci-app-}"
   rm -f "$SDK_DIR/.config"
   rm -rf "$SDK_DIR/bin/packages"
   rm -rf "$SDK_DIR/bin/targets"
-  rm -rf "$SDK_DIR/build_dir/target-"*
-  rm -rf "$SDK_DIR/staging_dir/target-"*
   rm -rf "$SDK_DIR/tmp"
   rm -rf "$SDK_DIR/package/$pkg_name"
+  find "$SDK_DIR/build_dir" -mindepth 1 -maxdepth 2 -type d \( \
+    -name "${pkg_name}*" -o \
+    -name "luci-i18n-${translation_pkg}*" \
+  \) -exec rm -rf {} + 2>/dev/null || true
 }
 
 render_package_config() {

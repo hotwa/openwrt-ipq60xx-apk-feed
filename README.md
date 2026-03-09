@@ -13,6 +13,13 @@ The first version only builds the LuCI packages. Runtime dependencies such as
 `podman` and `tailscale` are expected to come from the official ImmortalWrt
 snapshot feeds for the matching target baseline.
 
+To keep CI time low, the build strips `LUCI_DEPENDS` from these overlay
+packages during packaging. The resulting `.apk` files are intentionally
+lightweight and must be installed together with their official runtime
+dependencies:
+- `luci-app-podman`: `luci-base rpcd rpcd-mod-ucode ucode-mod-socket podman`
+- `luci-app-tailscale-community`: `luci-base ip tailscale`
+
 ## Why only these packages
 
 The current firmware pipeline times out when too many source-built packages are
