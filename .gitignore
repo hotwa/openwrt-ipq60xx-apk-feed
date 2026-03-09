@@ -1,0 +1,5 @@
+/.worktrees/
+/.cache/
+/.tmp/
+/.sdk/
+/.artifacts/
