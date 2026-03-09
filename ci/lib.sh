@@ -72,6 +72,7 @@ ensure_sdk() {
   require_cmd curl tar zstd
   if [ -d "$SDK_DIR" ] && [ -f "$SDK_DIR/rules.mk" ]; then
     note "reuse SDK at $SDK_DIR"
+    ensure_sdk_feeds
     return 0
   fi
 
@@ -95,6 +96,23 @@ ensure_sdk() {
   extracted="$(find "$(dirname "$SDK_DIR")" -maxdepth 1 -type d -name 'immortalwrt-sdk-*' | head -n 1)"
   [ -n "$extracted" ] || fail "extracted SDK directory not found"
   mv "$extracted" "$SDK_DIR"
+  ensure_sdk_feeds
+}
+
+ensure_sdk_feeds() {
+  require_cmd git make
+
+  if [ -f "$SDK_DIR/feeds/luci/luci.mk" ] && [ -d "$SDK_DIR/feeds/packages" ]; then
+    note "reuse initialized feeds"
+    return 0
+  fi
+
+  note "initialize SDK feeds"
+  (
+    cd "$SDK_DIR"
+    ./scripts/feeds update luci packages
+    ./scripts/feeds install -a
+  )
 }
 
 clone_package_source() {
