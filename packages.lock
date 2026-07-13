@@ -7,7 +7,7 @@ PACKAGE_IDS="luci-app-podman luci-app-tailscale-community"
 
 PKG_LUCI_APP_PODMAN_REPO=Zerogiven-OpenWRT-Packages/luci-app-podman
 PKG_LUCI_APP_PODMAN_BRANCH=main
-PKG_LUCI_APP_PODMAN_REF=ea2f8a00cf596a875efaedf2decac4bdd0c08a43
+PKG_LUCI_APP_PODMAN_REF=994eac10504f5673615d241b3ebd9d886670d5da
 PKG_LUCI_APP_PODMAN_SUBDIR=.
 PKG_LUCI_APP_PODMAN_PACKAGE_NAME=luci-app-podman
 PKG_LUCI_APP_PODMAN_BUILD_STRATEGY=strip_luci_depends
